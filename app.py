@@ -26,7 +26,17 @@ def init_db():
         """)
 @app.route("/")
 def home():
-    return render_template("index.html")
+    with sqlite3.connect(DATABASE) as conn:
+        conn.row_factory = sqlite3.Row
+        credentials = conn.execute("""
+            SELECT id, website, username
+            FROM credentials
+            ORDER BY id DESC
+        """).fetchall()
+    return render_template(
+        "index.html",
+        credentials=credentials
+    )
 @app.route("/add", methods=["POST"])
 def add_credentials():
     website = request.form.get("website", "").strip()
