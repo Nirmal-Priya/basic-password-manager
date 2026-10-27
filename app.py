@@ -26,7 +26,18 @@ def init_db():
         """)
 @app.route("/")
 def home():
-    return render_template("index.html")
+    with sqlite3.connect(DATABASE) as conn:
+        conn.row_factory = sqlite3.Row
+
+        credentials = conn.execute("""
+            SELECT id, website, username
+            FROM credentials
+            ORDER BY id DESC
+        """).fetchall()
+    return render_template(
+        "index.html",
+        credentials=credentials
+    )
 @app.route("/add", methods=["POST"])
 def add_credentials():
     website = request.form.get("website", "").strip()
@@ -46,6 +57,19 @@ def add_credentials():
             (website, username, encrypted_password)
         )
     flash("Credentials saved successfully!")
+    return redirect(url_for("home"))
+@app.route("/delete/<int:credential_id>", methods=["POST"])
+def delete_credentials(credential_id):
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.execute(
+            "DELETE FROM credentials WHERE id = ?",
+            (credential_id,)
+        )
+        deleted = cursor.rowcount
+    if deleted:
+        flash("Credential deleted successfully!")
+    else:
+        flash("Credential not found.")
     return redirect(url_for("home"))
 if __name__ == "__main__":
     init_db()
